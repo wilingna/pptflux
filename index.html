@@ -2226,6 +2226,37 @@ async function callApiOnce(systemPrompt, userMsg, maxTokens, imageDataUrls) {
   return data.choices?.[0]?.message?.content || '';
 }
 
+// ════════════════════════════════════════
+// SINGLE-PAGE RECOVERY (20s timeout, 1 attempt)
+// Used when a batch returns fewer pages than requested.
+// Returns the <section>...</section> string or null on failure.
+// ════════════════════════════════════════
+async function retrySinglePage(slide, absNum, totalSlides, style, cfg, systemPrompt) {
+  const n = String(absNum).padStart(2, '0');
+  const t = String(totalSlides).padStart(2, '0');
+  const bullets = slide.bullets.map(b => `- **${b.strong}**：${b.desc}`).join('\n');
+  const content = `=== 第${n}/${t}页 layout:${slide.layout} id:slide-${absNum} canvas:particleCanvas${absNum} CSS前缀:s${absNum}- ===
+标题：${slide.title}
+洞察：${slide.insight}
+结论：
+${bullets}
+页码显示：${n}/${t}
+字体已加载，本页不重复`;
+
+  try {
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('单页补救超时(20s)')), 20000));
+    const call = callApiOnce(systemPrompt,
+      `生成 1 页幻灯片（仅这一页，直接输出 <section>...</section>，不要 SLIDE_BREAK）：\n\n${content}`,
+      4000);
+    const raw = await Promise.race([call, timeout]);
+    const clean = (raw || '').replace(/```html\n?/g, '').replace(/```\n?/g, '').trim();
+    const match = clean.match(/<section[\s\S]*?<\/section>/i);
+    return match ? match[0] : null;
+  } catch (e) {
+    return null;
+  }
+}
 
 // ════════════════════════════════════════
 // RE-RENDER ONLY (Agent 4 standalone)
@@ -2485,8 +2516,33 @@ ${absNum===1?`字体（仅第一页加）：<link href="${cfg.fontUrl}" rel="sty
           const matches = batchHtml.match(/<section[\s\S]*?<\/section>/gi);
           if (matches && matches.length > parts.length) parts = matches;
         }
-        allHtmlParts.push(...parts);
-        addLog(`✓ P${String(batchStart+1).padStart(2,'0')}–P${String(batchEnd).padStart(2,'0')} 完成（${parts.length}张）`, '#4ade80');
+
+        // Per-page recovery: if the batch returned fewer sections than requested,
+        // assume the first N returned correspond to the first N requested pages,
+        // and recover the tail individually via single-page API + local fallback.
+        if (parts.length < batchSlides.length) {
+          addLog(`⚠ 本批 ${parts.length}/${batchSlides.length} 页，对缺失页单独补救…`, '#facc15');
+          const filled = parts.slice();
+          for (let k = parts.length; k < batchSlides.length; k++) {
+            const absNum = batchStart + k + 1;
+            const pLabel = 'P' + String(absNum).padStart(2,'0');
+            addLog(`  ↻ ${pLabel} 单独生成…`, '#888');
+            const single = await retrySinglePage(batchSlides[k], absNum, totalSlides, style, cfg, AGENT4_SYS);
+            if (single) {
+              filled.push(single);
+              addLog(`  ✓ ${pLabel} 单页补救成功`, '#4ade80');
+            } else {
+              filled.push(buildLocalSlide(batchSlides[k], absNum, totalSlides, style));
+              addLog(`  ↩ ${pLabel} 本地兜底`, '#888');
+            }
+          }
+          allHtmlParts.push(...filled);
+          addLog(`✓ P${String(batchStart+1).padStart(2,'0')}–P${String(batchEnd).padStart(2,'0')} 完成（${filled.length}张，含补救）`, '#4ade80');
+        } else {
+          // Batch returned >= expected (take only what we need to avoid over-shoot)
+          allHtmlParts.push(...parts.slice(0, batchSlides.length));
+          addLog(`✓ P${String(batchStart+1).padStart(2,'0')}–P${String(batchEnd).padStart(2,'0')} 完成（${batchSlides.length}张）`, '#4ade80');
+        }
       } else {
         // Fallback: simplified API call (no complex effects, just clean layout)
         addLog(`↩ 尝试简化版生成…`, '#888');
@@ -2511,6 +2567,20 @@ ${absNum===1?`字体（仅第一页加）：<link href="${cfg.fontUrl}" rel="sty
       }
 
       if (batchEnd < totalSlides) await new Promise(r => setTimeout(r, 3000));
+    }
+
+    // ── Final total-count validation: fill any remaining gap locally ──
+    if (allHtmlParts.length < totalSlides) {
+      addLog(`⚠ 实际 ${allHtmlParts.length}/${totalSlides} 页，补齐缺失页…`, '#facc15');
+      for (let k = allHtmlParts.length; k < totalSlides; k++) {
+        const pLabel = 'P' + String(k+1).padStart(2,'0');
+        allHtmlParts.push(buildLocalSlide(parsedSlides[k], k+1, totalSlides, style));
+        addLog(`  ↩ ${pLabel} 本地兜底补齐`, '#888');
+      }
+    } else if (allHtmlParts.length > totalSlides) {
+      // Trim over-generated tail (unusual, but guard for API returning extra)
+      addLog(`⚠ API 多返回 ${allHtmlParts.length - totalSlides} 页，已截断`, '#facc15');
+      allHtmlParts.length = totalSlides;
     }
 
     // ── Inject speaker notes into each slide ──
