@@ -2227,15 +2227,15 @@ function processV3Horizontal(ctx, n){
   const cells = [];
   s.bullets.slice(0,n).forEach((b,i)=>{
     if (i > 0) {
-      cells.push(`<div style="flex:1 1 auto;min-width:clamp(18px,3vw,60px);display:flex;align-items:center;padding-top:${size/2 - 9}px">
+      cells.push(`<div style="flex:0 1 auto;width:clamp(22px,5vw,70px);min-width:18px;display:flex;align-items:center;padding-top:${size/2 - 9}px">
         <div style="flex:1;height:2px;background:var(--ac)"></div>
         <span style="color:var(--ac);font-size:${Math.round(size*0.3)}px;font-weight:900;line-height:1;margin-left:-3px">▶</span>
       </div>`);
     }
-    cells.push(`<div class="rv" style="flex:0 1 auto;width:${Math.floor(84/n)}%;display:flex;flex-direction:column;align-items:center">
-      <div style="width:${size}px;height:${size}px;border-radius:50%;background:var(--ac);color:#0a0a0a;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-weight:800;font-size:clamp(1.2rem,2vw,1.8rem);box-shadow:0 6px 18px rgba(0,0,0,.22)">${i+1}</div>
-      <div style="font-weight:700;font-size:var(--bs);margin-top:.7rem;text-align:center;line-height:1.3">${esc(b.strong)}</div>
-      <div style="font-size:var(--ss);color:var(--mu);text-align:center;margin-top:.22rem;line-height:1.55">${esc(b.desc)}</div>
+    cells.push(`<div class="rv" style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;overflow:hidden">
+      <div style="width:${size}px;height:${size}px;border-radius:50%;background:var(--ac);color:#0a0a0a;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-weight:800;font-size:clamp(1.2rem,2vw,1.8rem);box-shadow:0 6px 18px rgba(0,0,0,.22);flex-shrink:0">${i+1}</div>
+      <div style="font-weight:700;font-size:var(--bs);margin-top:.7rem;text-align:center;line-height:1.3;word-break:break-word;max-width:100%">${esc(b.strong)}</div>
+      <div style="font-size:var(--ss);color:var(--mu);text-align:center;margin-top:.22rem;line-height:1.55;word-break:break-word;max-width:100%">${esc(b.desc)}</div>
     </div>`);
   });
   return `<section class="slide">${deco}${numBadge}
@@ -2244,7 +2244,7 @@ function processV3Horizontal(ctx, n){
     <h2 class="rv" style="font-family:var(--fd);font-size:var(--h2);font-weight:900;line-height:1.08;margin-bottom:.5rem">${esc(s.title)}</h2>
     <p class="rv" style="font-size:var(--bs);color:var(--mu);line-height:1.7;margin-bottom:var(--cg)">${esc(s.insight)}</p>
     <div style="flex:1;display:flex;align-items:center;justify-content:center;min-height:0">
-      <div style="display:flex;align-items:flex-start;width:100%">${cells.join('')}</div>
+      <div style="display:flex;flex-wrap:nowrap;align-items:flex-start;width:100%;gap:clamp(.3rem,.8vw,.8rem)">${cells.join('')}</div>
     </div>
   </div>
 </section>`;
@@ -2535,7 +2535,7 @@ function buildNotebookSlide(s, n, t, layout, deco, numBadge) {
     ${s.bullets.map(b=>`<div class="rv" style="display:flex;gap:.55rem;align-items:flex-start;padding:.35rem 0;border-bottom:1px solid rgba(0,0,0,.07);font-size:var(--ss)"><span style="color:var(--ac);font-weight:700;flex-shrink:0">▸</span><span><strong>${esc(b.strong)}</strong>：${esc(b.desc)}</span></div>`).join('')}`)}</section>`;
 }
 
-function buildTitleSlide(topic, audience, totalSlides, styleName) {
+function buildTitleSlide(topic, audience, totalSlides, styleName, subtitle) {
   const isNotebook=styleName==='Notebook Tabs';
   let deco='';
   if(styleName==='Bold Signal')deco='<div class="slide-bg-num" style="font-size:clamp(6rem,18vw,16rem)">✦</div>';
@@ -2544,16 +2544,20 @@ function buildTitleSlide(topic, audience, totalSlides, styleName) {
   else if(styleName==='Swiss Modern')deco='<div class="swiss-rule"></div><div class="swiss-grid"></div>';
   else if(styleName==='Electric Studio')deco='<div class="electric-split"></div><div class="electric-edge"></div>';
 
+  const brand = `<div style="position:absolute;right:clamp(1rem,2vw,2rem);bottom:clamp(1rem,2vw,1.8rem);font-size:.7rem;color:var(--mu);opacity:.5;letter-spacing:.08em;font-weight:500;z-index:2">Made with PPT-FLUX Studio</div>`;
+  const sub = subtitle
+    ? `<p class="rv" style="font-size:clamp(1rem,1.8vw,1.4rem);color:var(--mu);max-width:min(80vw,760px);line-height:1.5;margin-top:.8rem">${escHtml(subtitle)}</p>`
+    : '';
+
   if(isNotebook){
-    return `<section class="slide">
+    return `<section class="slide" style="position:relative">
   <div style="display:flex;align-items:center;justify-content:center;height:100%;padding:var(--sp2)">
     <div class="paper-card">
       <div class="paper-holes"><div class="paper-hole"></div><div class="paper-hole"></div><div class="paper-hole"></div></div>
-      <div class="paper-main" style="justify-content:center">
-        <div class="title-rule rv"></div>
-        <div class="rv" style="font-size:var(--ss);letter-spacing:.14em;text-transform:uppercase;color:var(--ac);font-weight:600;margin-bottom:.6rem">PRESENTATION · ${escHtml(audience)}</div>
-        <h1 class="rv" style="font-family:var(--fd);font-size:var(--h2);font-weight:700;line-height:1.1;margin-bottom:.6rem">${escHtml(topic)}</h1>
-        <p class="rv" style="font-size:var(--ss);color:var(--mu)">${totalSlides} slides · PPT-FLUX Studio</p>
+      <div class="paper-main" style="justify-content:center;align-items:center;text-align:center">
+        <div class="title-rule rv" style="margin:0 auto .9rem"></div>
+        <h1 class="rv" style="font-family:var(--fd);font-size:clamp(2rem,5vw,4rem);font-weight:700;line-height:1.1">${escHtml(topic)}</h1>
+        ${sub}
       </div>
       <div class="tab-strip">
         <div class="tab-item"><span class="tab-text">INTRO</span></div><div class="tab-item"><span class="tab-text">DATA</span></div>
@@ -2562,15 +2566,15 @@ function buildTitleSlide(topic, audience, totalSlides, styleName) {
       </div>
     </div>
   </div>
+  ${brand}
 </section>`;
   }
   return `<section class="slide">${deco}
-  <div class="title-wrap">
-    <div class="title-rule rv"></div>
-    <div class="title-eyebrow rv">PRESENTATION · ${escHtml(audience)}</div>
-    <h1 class="title-h1 rv">${escHtml(topic)}</h1>
-    <p class="title-meta rv">${totalSlides} slides · PPT-FLUX Studio</p>
+  <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;height:100%;padding:var(--sp);position:relative;z-index:1">
+    <h1 class="rv" style="font-family:var(--fd);font-size:clamp(3rem,6vw,6rem);font-weight:900;line-height:1.04;letter-spacing:-.02em;max-width:min(92vw,1100px)">${escHtml(topic)}</h1>
+    ${sub}
   </div>
+  ${brand}
 </section>`;
 }
 
@@ -2646,6 +2650,42 @@ async function callApiOnce(systemPrompt, userMsg, maxTokens, imageDataUrls) {
 // Used when a batch returns fewer pages than requested.
 // Returns the <section>...</section> string or null on failure.
 // ════════════════════════════════════════
+// Validates that an API-returned <section> is actually usable content,
+// not an empty skeleton. Guards against two failure modes:
+//   (1) Agent 4 returns `<section></section>` — passes the naive "contains <section" filter but renders blank.
+//   (2) Agent 4 returns a section belonging to a DIFFERENT page (misordered batch) — detected via slide-num / id.
+// Pass `expectedAbsNum` to enforce position match; omit for bare content check.
+function isValidSlideHtml(html, expectedAbsNum) {
+  if (!html) return false;
+  const s = String(html);
+  const m = s.match(/<section[\s\S]*?<\/section>/i);
+  if (!m) return false;
+  const section = m[0];
+  const stripped = section
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '');
+  const text = stripped.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+  if (text.length < 100) return false;
+  if (expectedAbsNum != null) {
+    const numMatch = section.match(/class="slide-num[^"]*"[^>]*>\s*0*(\d+)\s*\/\s*\d+\s*<\/div>/);
+    if (numMatch && parseInt(numMatch[1], 10) !== expectedAbsNum) return false;
+    const idMatch = section.match(/id=["']slide-(\d+)["']/);
+    if (idMatch && parseInt(idMatch[1], 10) !== expectedAbsNum) return false;
+  }
+  return true;
+}
+
+// Scans API-returned sections for their self-claimed page number (slide-num or id="slide-N").
+// Used to correctly place returned sections into their intended batch slots even when
+// Agent 4 returns them out-of-order or skips pages. Returns null if no claim found.
+function extractClaimedAbsNum(sectionHtml) {
+  const m1 = sectionHtml.match(/class="slide-num[^"]*"[^>]*>\s*0*(\d+)\s*\/\s*\d+\s*<\/div>/);
+  if (m1) return parseInt(m1[1], 10);
+  const m2 = sectionHtml.match(/id=["']slide-(\d+)["']/);
+  if (m2) return parseInt(m2[1], 10);
+  return null;
+}
+
 async function retrySinglePage(slide, absNum, totalSlides, style, cfg, systemPrompt, variant) {
   const n = String(absNum).padStart(2, '0');
   const t = String(totalSlides).padStart(2, '0');
@@ -2668,7 +2708,8 @@ ${bullets}
     const raw = await Promise.race([call, timeout]);
     const clean = (raw || '').replace(/```html\n?/g, '').replace(/```\n?/g, '').trim();
     const match = clean.match(/<section[\s\S]*?<\/section>/i);
-    return match ? match[0] : null;
+    const section = match ? match[0] : null;
+    return isValidSlideHtml(section, absNum) ? section : null;
   } catch (e) {
     return null;
   }
@@ -2928,40 +2969,62 @@ ${absNum===1?`字体（仅第一页加）：<link href="${cfg.fontUrl}" rel="sty
 
       if (success && batchHtml) {
         // Split by SLIDE_BREAK
-        let parts = batchHtml.split(/<!--\s*SLIDE_BREAK\s*-->/).map(s=>s.trim()).filter(s=>s.includes('<section'));
+        let rawParts = batchHtml.split(/<!--\s*SLIDE_BREAK\s*-->/).map(s=>s.trim()).filter(s=>s.includes('<section'));
         // Fallback: regex split by </section>
-        if (parts.length < batchSlides.length) {
+        if (rawParts.length < batchSlides.length) {
           const matches = batchHtml.match(/<section[\s\S]*?<\/section>/gi);
-          if (matches && matches.length > parts.length) parts = matches;
+          if (matches && matches.length > rawParts.length) rawParts = matches;
         }
 
-        // Per-page recovery: if the batch returned fewer sections than requested,
-        // assume the first N returned correspond to the first N requested pages,
-        // and recover the tail individually via single-page API + local fallback.
-        if (parts.length < batchSlides.length) {
-          addLog(`⚠ 本批 ${parts.length}/${batchSlides.length} 页，对缺失页单独补救…`, '#facc15');
-          const filled = parts.slice();
-          for (let k = parts.length; k < batchSlides.length; k++) {
-            const absNum = batchStart + k + 1;
-            const pLabel = 'P' + String(absNum).padStart(2,'0');
-            const v = pickVariant(batchSlides[k].layout, absNum-1, style);
-            addLog(`  ↻ ${pLabel} 单独生成 (variant:${v})…`, '#888');
-            const single = await retrySinglePage(batchSlides[k], absNum, totalSlides, style, cfg, AGENT4_SYS, v);
-            if (single) {
-              filled.push(single);
-              addLog(`  ✓ ${pLabel} 单页补救成功`, '#4ade80');
-            } else {
-              filled.push(buildLocalSlide(batchSlides[k], absNum, totalSlides, style, v));
-              addLog(`  ↩ ${pLabel} 本地兜底 (variant:${v})`, '#888');
-            }
+        // Position-aware placement: each returned <section> self-identifies its page
+        // via slide-num or id="slide-N". Place each into its intended slot; any slot
+        // left empty (missing / invalid / out-of-batch) triggers per-page recovery.
+        // This prevents the "API returned P5 at index 2 → P3 position shows 05/14" misalignment.
+        const slotMap = new Map(); // absNum → validated section html
+        for (const part of rawParts) {
+          const claimed = extractClaimedAbsNum(part);
+          if (claimed != null && claimed >= batchStart+1 && claimed <= batchEnd
+              && !slotMap.has(claimed) && isValidSlideHtml(part, claimed)) {
+            slotMap.set(claimed, part);
           }
-          allHtmlParts.push(...filled);
-          addLog(`✓ P${String(batchStart+1).padStart(2,'0')}–P${String(batchEnd).padStart(2,'0')} 完成（${filled.length}张，含补救）`, '#4ade80');
-        } else {
-          // Batch returned >= expected (take only what we need to avoid over-shoot)
-          allHtmlParts.push(...parts.slice(0, batchSlides.length));
-          addLog(`✓ P${String(batchStart+1).padStart(2,'0')}–P${String(batchEnd).padStart(2,'0')} 完成（${batchSlides.length}张）`, '#4ade80');
         }
+        // Sequential fallback for sections with no page-number marker (Agent omitted it):
+        // assign in order to remaining open slots, but still enforce content validation.
+        if (slotMap.size < batchSlides.length) {
+          const unclaimed = rawParts.filter(p => extractClaimedAbsNum(p) == null);
+          for (let i = 0; i < batchSlides.length && unclaimed.length; i++) {
+            const absNum = batchStart + i + 1;
+            if (slotMap.has(absNum)) continue;
+            const candidate = unclaimed.shift();
+            if (isValidSlideHtml(candidate)) slotMap.set(absNum, candidate);
+          }
+        }
+
+        let recoveryCount = 0;
+        const filled = [];
+        for (let i = 0; i < batchSlides.length; i++) {
+          const absNum = batchStart + i + 1;
+          if (slotMap.has(absNum)) {
+            filled.push(slotMap.get(absNum));
+            continue;
+          }
+          const pLabel = 'P' + String(absNum).padStart(2,'0');
+          const v = pickVariant(batchSlides[i].layout, absNum-1, style);
+          addLog(`  ↻ ${pLabel} 单独生成 (variant:${v})…`, '#888');
+          const single = await retrySinglePage(batchSlides[i], absNum, totalSlides, style, cfg, AGENT4_SYS, v);
+          if (single) {
+            filled.push(single);
+            addLog(`  ✓ ${pLabel} 单页补救成功`, '#4ade80');
+          } else {
+            filled.push(buildLocalSlide(batchSlides[i], absNum, totalSlides, style, v));
+            addLog(`  ↩ ${pLabel} 本地兜底 (variant:${v})`, '#888');
+          }
+          recoveryCount++;
+        }
+        allHtmlParts.push(...filled);
+        const tag = `P${String(batchStart+1).padStart(2,'0')}–P${String(batchEnd).padStart(2,'0')}`;
+        if (recoveryCount > 0) addLog(`✓ ${tag} 完成（${filled.length}张，含${recoveryCount}页补救）`, '#4ade80');
+        else addLog(`✓ ${tag} 完成（${batchSlides.length}张）`, '#4ade80');
       } else {
         // Fallback: simplified API call (no complex effects, just clean layout)
         addLog(`↩ 尝试简化版生成…`, '#888');
@@ -2975,6 +3038,8 @@ ${absNum===1?`字体（仅第一页加）：<link href="${cfg.fontUrl}" rel="sty
             const m = clean.match(/<section[\s\S]*?<\/section>/gi);
             if (m) parts2 = m;
           }
+          // Discard empty skeletons so subsequent gap-fill replaces them with local fallback.
+          parts2 = parts2.filter(p => isValidSlideHtml(p));
           if (parts2.length > 0) {
             allHtmlParts.push(...parts2);
             addLog(`✓ 简化版完成（${parts2.length}张）`, '#4ade80');
