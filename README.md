@@ -1,4 +1,4 @@
-# 🎯 PPT-FLUX Studio
+# 🎯 PPTFlux
 
 > 从"AI 做 PPT 三件套"进化而来的一体化生成系统
 > 用 4 个 AI Agent，把零散资料 → 结构化表达 → 可交付 HTML 演示，一次完成
@@ -9,13 +9,13 @@
 
 ## 🚀 本质升级是什么？
 
-PPT-FLUX Studio 不只是一个工具，而是"AI 做 PPT 三件套"方法论的产品化终局形态：
+PPTFlux 不只是一个工具，而是"AI 做 PPT 三件套"方法论的产品化终局形态：
 
 | 版本 | 方式 | 核心问题 |
 |------|------|----------|
 | ai-ppt-toolkit | 三工具拼接（NotebookLM + Gemini + Gamma） | 工具割裂，手动切换 |
 | ai-ppt-web | Claude + Gamma 半自动流 | 仍需复制粘贴 |
-| **PPT-FLUX Studio** | **4 Agent 一体化闭环** | ✅ 全流程一次完成 |
+| **PPTFlux** | **4 Agent 一体化闭环** | ✅ 全流程一次完成 |
 
 ---
 
@@ -23,7 +23,7 @@ PPT-FLUX Studio 不只是一个工具，而是"AI 做 PPT 三件套"方法论的
 
 > ❗不是"做 PPT"，而是"重构表达系统"
 
-PPT-FLUX Studio = AI 资料理解（NotebookLM 思维）+ AI 表达优化（Gemini 标准）+ Agent 串联能力 + 前端表达能力
+PPTFlux = AI 资料理解（NotebookLM 思维）+ AI 表达优化（Gemini 标准）+ Agent 串联能力 + 前端表达能力
 
 **最终融合为：一个可交付的表达引擎**
 
@@ -100,7 +100,7 @@ ai-ppt-toolkit（方法论验证）
         ↓
 ai-ppt-web（流程简化）
         ↓
-PPT-FLUX Studio（系统重构：当前最优解）
+PPTFlux（系统重构：当前最优解）
 ```
 
 ---

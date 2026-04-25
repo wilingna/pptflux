@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PPT-FLUX Studio</title>
+<title>PPTFlux</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1222,7 +1222,7 @@ async function streamTo(elId, system, userMsg) {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + API_KEY,
         'HTTP-Referer': 'http://localhost:8080',
-        'X-Title': 'PPT-FLUX Studio',
+        'X-Title': 'PPTFlux',
       },
       body: JSON.stringify({
         model: MODEL,
@@ -1451,6 +1451,9 @@ body{background:var(--bg);font-family:var(--fb);color:var(--tx);}
 .tab-item:nth-child(1){background:var(--ac);}.tab-item:nth-child(2){background:var(--ac2);}.tab-item:nth-child(3){background:var(--ac3);}.tab-item:nth-child(4){background:var(--ac4);}.tab-item:nth-child(5){background:#ffe6a7;}
 .tab-text{writing-mode:vertical-rl;font-size:clamp(.4rem,.72vh,.58rem);font-weight:500;color:rgba(0,0,0,.5);text-transform:uppercase;letter-spacing:.08em;transform:rotate(180deg);}
 .slide-num{position:absolute;bottom:.8rem;right:.8rem;font-family:var(--fd);font-size:.58rem;color:var(--mu2);}
+/* .slide-num occupies this style's bottom-right — avoid collision by moving signature to bottom-left.
+   Global --tx (#1a1a1a near-black) is invisible on this style's #2d2d2d outer bg, so use --paper (paper tone) for contrast. */
+.slide-signature{right:auto;left:1.4rem;bottom:.9rem;color:var(--paper);}
 .nav-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.25);cursor:pointer;border:none;padding:0;transition:all .3s;}
 .nav-dot.active{background:var(--ac);transform:scale(1.5);}`,
     accentColor: '#98d4bb',
@@ -1534,6 +1537,7 @@ html{scroll-snap-type:y mandatory;scroll-behavior:smooth}
 .rv:nth-child(3),.reveal:nth-child(3){transition-delay:.22s}.rv:nth-child(4),.reveal:nth-child(4){transition-delay:.3s}
 .rv:nth-child(5),.reveal:nth-child(5){transition-delay:.38s}.rv:nth-child(6),.reveal:nth-child(6){transition-delay:.46s}
 .rv:nth-child(7),.reveal:nth-child(7){transition-delay:.54s}.rv:nth-child(8),.reveal:nth-child(8){transition-delay:.62s}
+.slide-signature{position:absolute;right:1.4rem;bottom:.9rem;font-size:.7rem;letter-spacing:.08em;opacity:.4;color:var(--tx);pointer-events:none;z-index:2;user-select:none}
 .nav-dots{position:fixed;right:clamp(8px,1.4vw,16px);top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:clamp(5px,1vh,9px);z-index:100}
 #progress-bar{position:fixed;top:0;left:0;height:3px;width:0%;z-index:9999;transition:width .35s}
 /* cursor glow — keep for fallback */
@@ -1998,8 +2002,8 @@ function parseMarkdownToSlides(md) {
 // ════════════════════════════════════════
 // LOCAL SLIDE BUILDER — 6 layouts
 // ════════════════════════════════════════
-function getStyleDeco(styleName, num) {
-  if (styleName==='Bold Signal') return `<div class="slide-bg-num">${num}</div>`;
+function getStyleDeco(styleName) {
+  if (styleName==='Bold Signal') return '';
   if (styleName==='Dark Botanical') return `<div class="slide-orb orb1"></div><div class="slide-orb orb2"></div>`;
   if (styleName==='Creative Voltage') return `<div class="slide-grid-bg"></div>`;
   if (styleName==='Swiss Modern') return `<div class="swiss-rule"></div><div class="swiss-grid"></div>`;
@@ -2043,10 +2047,11 @@ function buildLocalSlide(s, num, total, styleName, variant) {
   const n = String(num).padStart(2,'0'), t = String(total).padStart(2,'0');
   const layout = (s.layout||'insight').toLowerCase().trim();
   const v = variant || pickVariant(layout, num-1, styleName);
-  const numBadge = `<div class="slide-num rv">${n} / ${t}</div>`;
-  const deco = getStyleDeco(styleName, n);
-  if (styleName === 'Notebook Tabs') return buildNotebookSlide(s, n, t, layout, deco, numBadge);
-  const ctx = { s, n, t, num, total, style: styleName, deco, numBadge };
+  const numBadge = `<div class="slide-num rv">${n}/${t}</div>`;
+  const signature = `<div class="slide-signature">PPTFlux</div>`;
+  const deco = getStyleDeco(styleName);
+  if (styleName === 'Notebook Tabs') return buildNotebookSlide(s, n, t, layout, deco, numBadge, signature);
+  const ctx = { s, n, t, num, total, style: styleName, deco, numBadge, signature };
   switch (layout) {
     case 'hook':    return v==='v2' ? hookV2(ctx) : v==='v3' ? hookV3(ctx) : hookV1(ctx);
     case 'data':    return v==='v2' ? dataV2(ctx) : v==='v3' ? dataV3(ctx) : dataV1(ctx);
@@ -2059,10 +2064,9 @@ function buildLocalSlide(s, num, total, styleName, variant) {
 
 // ── HOOK variants ──────────────────────────────────────────────
 function hookV1(ctx) { // v1: Hero 全屏居中 (single-column)
-  const {s,n,t,deco,numBadge} = ctx;
-  return `<section class="slide">${deco}${numBadge}
+  const {s,deco,numBadge,signature} = ctx;
+  return `<section class="slide">${deco}${numBadge}${signature}
   <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;padding:var(--sp);text-align:center;height:100%;position:relative;z-index:1">
-    <div class="rv" style="font-size:var(--ss);letter-spacing:.22em;text-transform:uppercase;color:var(--ac);font-weight:700;margin-bottom:1.1rem">${n} · ${t}</div>
     <h1 class="rv" style="font-family:var(--fd);font-size:clamp(2.2rem,7.5vw,5.8rem);font-weight:900;line-height:1.02;letter-spacing:-.02em;max-width:min(92vw,1100px);margin-bottom:1.1rem">${esc(s.title)}</h1>
     <p class="rv" style="font-size:var(--bs);color:var(--mu);max-width:min(75vw,640px);line-height:1.75">${esc(s.insight)}</p>
     ${s.bullets.slice(0,3).length?`<div class="rv" style="margin-top:1.8rem;display:flex;gap:.9rem;flex-wrap:wrap;justify-content:center">${s.bullets.slice(0,3).map(b=>`<span style="font-size:var(--ss);letter-spacing:.08em;text-transform:uppercase;padding:.42rem .95rem;border:1px solid var(--ac);border-radius:100px;color:var(--ac);font-weight:600">${esc(b.strong)}</span>`).join('')}</div>`:''}
@@ -2070,11 +2074,10 @@ function hookV1(ctx) { // v1: Hero 全屏居中 (single-column)
 </section>`;
 }
 function hookV2(ctx) { // v2: 上下分割 (top accent panel + bottom title)
-  const {s,n,deco,numBadge} = ctx;
-  return `<section class="slide">${deco}${numBadge}
+  const {s,deco,numBadge,signature} = ctx;
+  return `<section class="slide">${deco}${numBadge}${signature}
   <div style="display:flex;flex-direction:column;height:100%;position:relative;z-index:1">
     <div style="flex:0 0 38%;background:var(--ac);padding:var(--sp);display:flex;flex-direction:column;justify-content:center;overflow:hidden">
-      <div class="rv" style="font-size:var(--ss);letter-spacing:.18em;text-transform:uppercase;color:rgba(0,0,0,.7);font-weight:700;margin-bottom:.7rem">INSIGHT · ${n}</div>
       <p class="rv" style="font-family:var(--fd);font-size:clamp(1.1rem,2.6vw,2rem);line-height:1.3;font-weight:700;color:#0a0a0a;max-width:88%">${esc(s.insight)}</p>
     </div>
     <div style="flex:1;padding:var(--sp);display:flex;flex-direction:column;justify-content:center;overflow:hidden">
@@ -2085,15 +2088,14 @@ function hookV2(ctx) { // v2: 上下分割 (top accent panel + bottom title)
 </section>`;
 }
 function hookV3(ctx) { // v3: 经典左右分栏 (existing .hook-wrap)
-  const {s,n,deco,numBadge} = ctx;
+  const {s,deco,numBadge,signature} = ctx;
   const sm = (s.title+' '+s.insight).match(/(\d[\d,.-]*\s*[%xX倍万亿千百人个年月天小时]+|\d{2,}[\d,.]*[%倍]?)/);
   const hookRight = sm
     ? `<div class="hook-stat rv">${esc(sm[0])}</div><div class="hook-stat-label rv">${esc(s.title.replace(sm[0],'').trim()||s.bullets[0]?.strong||'')}</div>${s.bullets[1]?`<div class="hook-stat-label rv" style="margin-top:.8rem;opacity:.7">${esc(s.bullets[1].strong)}</div>`:''}`
     : s.bullets.slice(0,3).map(b=>`<div class="hook-bullet-item rv"><span class="hook-bullet-strong">${esc(b.strong)}</span><span class="hook-bullet-desc">${esc(b.desc)}</span></div>`).join('');
-  return `<section class="slide">${deco}${numBadge}
+  return `<section class="slide">${deco}${numBadge}${signature}
   <div class="hook-wrap">
     <div class="hook-left">
-      <div class="hook-eyebrow rv">INSIGHT · ${n}</div>
       <h1 class="hook-title rv">${esc(s.title)}</h1>
       <p class="hook-sub rv">${esc(s.insight)}</p>
     </div>
@@ -2104,7 +2106,7 @@ function hookV3(ctx) { // v3: 经典左右分栏 (existing .hook-wrap)
 
 // ── DATA variants ──────────────────────────────────────────────
 function dataV1(ctx) { // v1: 3-4 横排卡片 (existing .data-wrap)
-  const {s,n,deco,numBadge} = ctx;
+  const {s,deco,numBadge,signature} = ctx;
   const cards = s.bullets.slice(0,4).map(b=>{
     const txt = b.strong+' '+b.desc;
     const nm = txt.match(/(\d[\d,.-]*\s*[%xX倍万亿千百人个年月天小时]+|\d{2,}[\d,.]*[%倍]?)/);
@@ -2112,10 +2114,9 @@ function dataV1(ctx) { // v1: 3-4 横排卡片 (existing .data-wrap)
     const label = b.strong.replace(bigNum,'').replace(/[：:]/,'').trim()||b.strong;
     return `<div class="data-card rv"><div class="data-num">${esc(bigNum)}</div><div class="data-unit">${esc(label)}</div><div class="data-desc">${esc(b.desc)}</div></div>`;
   }).join('');
-  return `<section class="slide">${deco}${numBadge}
+  return `<section class="slide">${deco}${numBadge}${signature}
   <div class="data-wrap">
     <div class="data-header">
-      <div class="data-eyebrow rv">DATA · ${n}</div>
       <h2 class="data-title rv">${esc(s.title)}</h2>
       <p class="data-insight rv">${esc(s.insight)}</p>
     </div>
@@ -2124,7 +2125,7 @@ function dataV1(ctx) { // v1: 3-4 横排卡片 (existing .data-wrap)
 </section>`;
 }
 function dataV2(ctx) { // v2: 巨型数字 + 支持指标 (single-column centered)
-  const {s,n,deco,numBadge} = ctx;
+  const {s,deco,numBadge,signature} = ctx;
   const NUM_RE = /\d+(?:\.\d+)?\s*(?:%|倍|万|亿|千|百|人|个|年|月|天|周|日|小时|分钟|秒|元)?/;
   const firstB = s.bullets[0];
   const firstMatch = firstB ? (firstB.strong+' '+firstB.desc).match(NUM_RE) : null;
@@ -2132,9 +2133,8 @@ function dataV2(ctx) { // v2: 巨型数字 + 支持指标 (single-column centere
     .map(str => (str||'').match(NUM_RE)).filter(m => m)[0];
   const bigNum = firstMatch ? firstMatch[0] : (fallbackMatch ? fallbackMatch[0] : '—');
   const smallStats = s.bullets.slice(1, 4);
-  return `<section class="slide">${deco}${numBadge}
+  return `<section class="slide">${deco}${numBadge}${signature}
   <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;padding:var(--sp);text-align:center;position:relative;z-index:1;gap:clamp(.5rem,1.3vw,1.1rem)">
-    <div class="rv" style="font-size:var(--ss);letter-spacing:.2em;text-transform:uppercase;color:var(--ac);font-weight:700">DATA · ${n}</div>
     <div class="rv" style="font-family:var(--fd);font-size:clamp(4rem,13vw,10rem);font-weight:900;color:var(--ac);line-height:.88;letter-spacing:-.03em">${esc(bigNum)}</div>
     ${firstB?`<div class="rv" style="font-size:var(--bs);color:var(--tx);font-weight:600;letter-spacing:.02em">${esc(firstB.strong)}${firstB.desc?` · <span style="color:var(--mu);font-weight:400">${esc(firstB.desc)}</span>`:''}</div>`:''}
     <h2 class="rv" style="font-family:var(--fd);font-size:clamp(1.3rem,3vw,2.1rem);font-weight:900;line-height:1.15;max-width:min(85vw,760px);margin-top:.3rem">${esc(s.title)}</h2>
@@ -2144,7 +2144,7 @@ function dataV2(ctx) { // v2: 巨型数字 + 支持指标 (single-column centere
 </section>`;
 }
 function dataV3(ctx) { // v3: CSS 柱状图 (max-bar highlighted, others faded)
-  const {s,n,deco,numBadge} = ctx;
+  const {s,deco,numBadge,signature} = ctx;
   const NUM_RE = /(\d+(?:\.\d+)?)\s*(%|倍|万|亿|千|百|人|个|年|月|天|周|日|小时|分钟|秒|元)?/;
   const bars = s.bullets.slice(0,5).map(b=>{
     const text = b.strong+' '+b.desc;
@@ -2154,9 +2154,8 @@ function dataV3(ctx) { // v3: CSS 柱状图 (max-bar highlighted, others faded)
   // If values are close to each other (or all zero), amplify the visual delta so bars don't look identical.
   const maxVal = Math.max(...bars.map(x=>x.val), 1);
   const maxIdx = bars.reduce((best, b, i, arr) => b.val > arr[best].val ? i : best, 0);
-  return `<section class="slide">${deco}${numBadge}
+  return `<section class="slide">${deco}${numBadge}${signature}
   <div style="display:flex;flex-direction:column;height:100%;padding:var(--sp);position:relative;z-index:1">
-    <div class="rv" style="font-size:var(--ss);letter-spacing:.14em;text-transform:uppercase;color:var(--ac);font-weight:600;margin-bottom:.45rem">DATA · ${n}</div>
     <h2 class="rv" style="font-family:var(--fd);font-size:var(--h2);font-weight:900;line-height:1.08;margin-bottom:.5rem">${esc(s.title)}</h2>
     <p class="rv" style="font-size:var(--bs);color:var(--mu);line-height:1.7;margin-bottom:var(--cg)">${esc(s.insight)}</p>
     <div style="display:flex;align-items:flex-end;gap:clamp(.8rem,2vw,2.2rem);flex:1;padding:.7rem 0 0;min-height:0">
@@ -2178,9 +2177,9 @@ function dataV3(ctx) { // v3: CSS 柱状图 (max-bar highlighted, others faded)
 
 // ── PROCESS variants ───────────────────────────────────────────
 function processV1(ctx) { // v1: 横向步骤+箭头 (existing .process-wrap)
-  const {s,deco,numBadge} = ctx;
+  const {s,deco,numBadge,signature} = ctx;
   const steps = s.bullets.slice(0,5).map((b,i)=>`<div class="process-step rv"><div class="step-num">${i+1}</div><div class="step-title">${esc(b.strong)}</div><div class="step-desc">${esc(b.desc)}</div></div>`).join('');
-  return `<section class="slide">${deco}${numBadge}
+  return `<section class="slide">${deco}${numBadge}${signature}
   <div class="process-wrap">
     <div class="process-header"><h2 class="process-title rv">${esc(s.title)}</h2><p class="process-insight rv">${esc(s.insight)}</p></div>
     <div class="process-steps">${steps}</div>
@@ -2188,10 +2187,9 @@ function processV1(ctx) { // v1: 横向步骤+箭头 (existing .process-wrap)
 </section>`;
 }
 function processV2(ctx) { // v2: 垂直时间轴
-  const {s,n,deco,numBadge} = ctx;
-  return `<section class="slide">${deco}${numBadge}
+  const {s,deco,numBadge,signature} = ctx;
+  return `<section class="slide">${deco}${numBadge}${signature}
   <div style="display:flex;flex-direction:column;height:100%;padding:var(--sp);position:relative;z-index:1">
-    <div class="rv" style="font-size:var(--ss);letter-spacing:.14em;text-transform:uppercase;color:var(--ac);font-weight:600;margin-bottom:.45rem">TIMELINE · ${n}</div>
     <h2 class="rv" style="font-family:var(--fd);font-size:var(--h2);font-weight:900;line-height:1.08;margin-bottom:.5rem">${esc(s.title)}</h2>
     <p class="rv" style="font-size:var(--bs);color:var(--mu);line-height:1.7;margin-bottom:var(--cg)">${esc(s.insight)}</p>
     <div style="position:relative;flex:1;padding-left:clamp(2rem,4vw,3.5rem);overflow:hidden">
@@ -2222,7 +2220,7 @@ function processV3(ctx){
   return processV3Horizontal(ctx, count);
 }
 function processV3Horizontal(ctx, n){
-  const {s,n:nn,deco,numBadge} = ctx;
+  const {s,deco,numBadge,signature} = ctx;
   const size = 104 - n * 8; // 3→80, 4→72, 5→64, 6→56
   const cells = [];
   s.bullets.slice(0,n).forEach((b,i)=>{
@@ -2238,9 +2236,8 @@ function processV3Horizontal(ctx, n){
       <div style="font-size:var(--ss);color:var(--mu);text-align:center;margin-top:.22rem;line-height:1.55;word-break:break-word;max-width:100%">${esc(b.desc)}</div>
     </div>`);
   });
-  return `<section class="slide">${deco}${numBadge}
+  return `<section class="slide">${deco}${numBadge}${signature}
   <div style="display:flex;flex-direction:column;height:100%;padding:var(--sp);position:relative;z-index:1">
-    <div class="rv" style="font-size:var(--ss);letter-spacing:.14em;text-transform:uppercase;color:var(--ac);font-weight:600;margin-bottom:.45rem">FLOW · ${nn}</div>
     <h2 class="rv" style="font-family:var(--fd);font-size:var(--h2);font-weight:900;line-height:1.08;margin-bottom:.5rem">${esc(s.title)}</h2>
     <p class="rv" style="font-size:var(--bs);color:var(--mu);line-height:1.7;margin-bottom:var(--cg)">${esc(s.insight)}</p>
     <div style="flex:1;display:flex;align-items:center;justify-content:center;min-height:0">
@@ -2250,7 +2247,7 @@ function processV3Horizontal(ctx, n){
 </section>`;
 }
 function processV3Stair(ctx, n){
-  const {s,n:nn,deco,numBadge} = ctx;
+  const {s,deco,numBadge,signature} = ctx;
   const size = 100 - n * 8;        // 3→76, 4→68, 5→60, 6→52
   const indent = 90 - n * 8;       // 3→66, 4→58, 5→50, 6→42 (per-step offset)
   const rows = s.bullets.slice(0,n).map((b,i)=>{
@@ -2263,9 +2260,8 @@ function processV3Stair(ctx, n){
       </div>
     </div>`;
   }).join('');
-  return `<section class="slide">${deco}${numBadge}
+  return `<section class="slide">${deco}${numBadge}${signature}
   <div style="display:flex;flex-direction:column;height:100%;padding:var(--sp);position:relative;z-index:1">
-    <div class="rv" style="font-size:var(--ss);letter-spacing:.14em;text-transform:uppercase;color:var(--ac);font-weight:600;margin-bottom:.45rem">EVOLUTION · ${nn}</div>
     <h2 class="rv" style="font-family:var(--fd);font-size:var(--h2);font-weight:900;line-height:1.08;margin-bottom:.5rem">${esc(s.title)}</h2>
     <p class="rv" style="font-size:var(--bs);color:var(--mu);line-height:1.7;margin-bottom:var(--cg)">${esc(s.insight)}</p>
     <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:clamp(.5rem,1.5vh,1.2rem);padding-left:clamp(1rem,3vw,3rem);min-height:0;overflow:hidden">
@@ -2275,7 +2271,7 @@ function processV3Stair(ctx, n){
 </section>`;
 }
 function processV3Circular(ctx, n){
-  const {s,n:nn,deco,numBadge} = ctx;
+  const {s,n:nn,deco,numBadge,signature} = ctx;
   const size = 96 - n * 8;  // 3→72, 4→64, 5→56, 6→48
   const r = 42;             // radius in viewBox/percent units
   const mid = 50;
@@ -2298,9 +2294,8 @@ function processV3Circular(ctx, n){
     const x1 = mid + r * Math.cos(a1), y1 = mid + r * Math.sin(a1);
     arcs.push(`<path d="M ${x0.toFixed(2)} ${y0.toFixed(2)} A ${r} ${r} 0 0 1 ${x1.toFixed(2)} ${y1.toFixed(2)}" fill="none" stroke="currentColor" stroke-width="0.8" stroke-linecap="round" marker-end="url(#ah-${nn})"/>`);
   }
-  return `<section class="slide">${deco}${numBadge}
+  return `<section class="slide">${deco}${numBadge}${signature}
   <div style="display:flex;flex-direction:column;height:100%;padding:var(--sp);position:relative;z-index:1">
-    <div class="rv" style="font-size:var(--ss);letter-spacing:.14em;text-transform:uppercase;color:var(--ac);font-weight:600;margin-bottom:.45rem">CYCLE · ${nn}</div>
     <h2 class="rv" style="font-family:var(--fd);font-size:var(--h2);font-weight:900;line-height:1.08;margin-bottom:.5rem">${esc(s.title)}</h2>
     <p class="rv" style="font-size:var(--bs);color:var(--mu);line-height:1.7;margin-bottom:var(--cg)">${esc(s.insight)}</p>
     <div style="flex:1;display:flex;align-items:center;justify-content:center;min-height:0">
@@ -2326,11 +2321,11 @@ function processV3Circular(ctx, n){
 
 // ── COMPARE variants ───────────────────────────────────────────
 function compareV1(ctx) { // v1: 经典左右两列 (existing .compare-wrap)
-  const {s,deco,numBadge} = ctx;
+  const {s,deco,numBadge,signature} = ctx;
   const half = Math.ceil(s.bullets.length/2);
   const lb = s.bullets.slice(0,half), rb = s.bullets.slice(half);
   const col = (bullets,cls,lbl)=>`<div class="compare-col ${cls} rv"><div class="compare-col-label">${lbl}</div>${bullets.map(b=>`<div class="compare-item"><span>${esc(b.strong)}${b.desc?'：'+esc(b.desc):''}</span></div>`).join('')}</div>`;
-  return `<section class="slide">${deco}${numBadge}
+  return `<section class="slide">${deco}${numBadge}${signature}
   <div class="compare-wrap">
     <h2 class="compare-title rv">${esc(s.title)}</h2>
     <p class="compare-insight rv">${esc(s.insight)}</p>
@@ -2339,19 +2334,17 @@ function compareV1(ctx) { // v1: 经典左右两列 (existing .compare-wrap)
 </section>`;
 }
 function compareV2(ctx) { // v2: 双色背景左右分割 (full-bleed)
-  const {s,deco,numBadge} = ctx;
+  const {s,deco,numBadge,signature} = ctx;
   const half = Math.ceil(s.bullets.length/2);
   const lb = s.bullets.slice(0,half), rb = s.bullets.slice(half);
   const parts = s.title.split(/\s(?:vs|对比|→|——)\s/i);
-  return `<section class="slide">${deco}${numBadge}
+  return `<section class="slide">${deco}${numBadge}${signature}
   <div style="display:flex;height:100%;position:relative;z-index:1">
     <div style="flex:1;background:linear-gradient(135deg,rgba(248,113,113,.14) 0%,rgba(248,113,113,.04) 100%);padding:var(--sp);display:flex;flex-direction:column;justify-content:center;border-right:1px dashed rgba(255,255,255,.08);overflow:hidden">
-      <div class="rv" style="font-size:var(--ss);letter-spacing:.2em;text-transform:uppercase;color:#f87171;font-weight:700;margin-bottom:.6rem">BEFORE · 现状</div>
       <h3 class="rv" style="font-family:var(--fd);font-size:clamp(1.1rem,2.8vw,2rem);font-weight:900;line-height:1.15;margin-bottom:var(--cg)">${esc((parts[0]||s.title).trim())}</h3>
       ${lb.map(b=>`<div class="rv" style="padding:.42rem 0;font-size:var(--bs);color:var(--mu);line-height:1.5;border-bottom:1px solid rgba(255,255,255,.05)"><strong style="color:#f87171">✕</strong> ${esc(b.strong)}${b.desc?`<div style="font-size:var(--ss);opacity:.75;margin-top:.15rem">${esc(b.desc)}</div>`:''}</div>`).join('')}
     </div>
     <div style="flex:1;background:linear-gradient(135deg,rgba(74,222,128,.1) 0%,rgba(74,222,128,.03) 100%);padding:var(--sp);display:flex;flex-direction:column;justify-content:center;overflow:hidden">
-      <div class="rv" style="font-size:var(--ss);letter-spacing:.2em;text-transform:uppercase;color:var(--ac);font-weight:700;margin-bottom:.6rem">AFTER · 方案</div>
       <h3 class="rv" style="font-family:var(--fd);font-size:clamp(1.1rem,2.8vw,2rem);font-weight:900;line-height:1.15;margin-bottom:var(--cg);color:var(--ac)">${esc((parts[1]||s.insight.slice(0,42)).trim())}</h3>
       ${rb.map(b=>`<div class="rv" style="padding:.42rem 0;font-size:var(--bs);color:var(--tx);line-height:1.5;border-bottom:1px solid rgba(255,255,255,.05)"><strong style="color:var(--ac)">✓ ${esc(b.strong)}</strong>${b.desc?`<div style="font-size:var(--ss);color:var(--mu);margin-top:.15rem">${esc(b.desc)}</div>`:''}</div>`).join('')}
     </div>
@@ -2359,14 +2352,13 @@ function compareV2(ctx) { // v2: 双色背景左右分割 (full-bleed)
 </section>`;
 }
 function compareV3(ctx) { // v3: 上下 Before/After 堆叠 (content centered within each block)
-  const {s,n,deco,numBadge} = ctx;
+  const {s,deco,numBadge,signature} = ctx;
   const half = Math.ceil(s.bullets.length/2);
   const lb = s.bullets.slice(0,half), rb = s.bullets.slice(half);
   const itemHtml = (arr, strongColor) => arr.map(b=>`<div style="font-size:var(--bs);line-height:1.5"><strong${strongColor?` style="color:${strongColor}"`:''}>${esc(b.strong)}</strong>${b.desc?`<span style="color:var(--mu);font-weight:400">：${esc(b.desc)}</span>`:''}</div>`).join(`<span style="color:${strongColor||'var(--mu)'};opacity:.45;align-self:center">·</span>`);
-  return `<section class="slide">${deco}${numBadge}
+  return `<section class="slide">${deco}${numBadge}${signature}
   <div style="display:flex;flex-direction:column;height:100%;padding:var(--sp);position:relative;z-index:1">
     <div class="rv" style="flex-shrink:0;margin-bottom:.4rem">
-      <div style="font-size:var(--ss);letter-spacing:.14em;text-transform:uppercase;color:var(--ac);font-weight:600;margin-bottom:.4rem">BEFORE → AFTER · ${n}</div>
       <h2 style="font-family:var(--fd);font-size:var(--h2);font-weight:900;line-height:1.08">${esc(s.title)}</h2>
     </div>
     <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:clamp(.8rem,1.6vw,1.3rem);min-height:0;padding:.3rem 0">
@@ -2385,8 +2377,8 @@ function compareV3(ctx) { // v3: 上下 Before/After 堆叠 (content centered wi
 
 // ── INSIGHT variants ───────────────────────────────────────────
 function insightV1(ctx) { // v1: 大引用 (single-column, editorial)
-  const {s,deco,numBadge} = ctx;
-  return `<section class="slide">${deco}${numBadge}
+  const {s,deco,numBadge,signature} = ctx;
+  return `<section class="slide">${deco}${numBadge}${signature}
   <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;padding:var(--sp);text-align:center;position:relative;z-index:1">
     <div class="rv" style="font-family:var(--fd);font-size:clamp(5rem,12vw,11rem);color:var(--ac);line-height:.6;height:clamp(2rem,4vw,4rem);opacity:.55;margin-bottom:0">"</div>
     <p class="rv" style="font-family:var(--fd);font-style:italic;font-size:clamp(1.4rem,4vw,2.9rem);font-weight:700;line-height:1.25;max-width:min(90vw,960px);margin-bottom:1.3rem">${esc(s.insight)}</p>
@@ -2397,13 +2389,12 @@ function insightV1(ctx) { // v1: 大引用 (single-column, editorial)
 </section>`;
 }
 function insightV2(ctx) { // v2: 经典左右 (existing .insight-wrap)
-  const {s,n,deco,numBadge} = ctx;
+  const {s,deco,numBadge,signature} = ctx;
   const icons = ['💡','📌','⚡','🎯','🔑','📊','🚀','⚖️','🔍','📈'];
   const rb = s.bullets.map((b,i)=>`<div class="insight-bullet rv"><span class="ib-icon">${icons[i%icons.length]}</span><div><div class="ib-strong">${esc(b.strong)}</div><div class="ib-desc">${esc(b.desc)}</div></div></div>`).join('');
-  return `<section class="slide">${deco}${numBadge}
+  return `<section class="slide">${deco}${numBadge}${signature}
   <div class="insight-wrap">
     <div class="insight-left">
-      <div class="insight-eyebrow rv">INSIGHT · ${n}</div>
       <h2 class="insight-title rv">${esc(s.title)}</h2>
       <p class="insight-body rv">${esc(s.insight)}</p>
     </div>
@@ -2412,14 +2403,13 @@ function insightV2(ctx) { // v2: 经典左右 (existing .insight-wrap)
 </section>`;
 }
 function insightV3(ctx) { // v3: 全屏段落+首字下沉 (single-column reading)
-  const {s,n,t,deco,numBadge} = ctx;
+  const {s,deco,numBadge,signature} = ctx;
   const paraText = s.insight + (s.bullets.length?' '+s.bullets.map(b=>b.strong+(b.desc?'：'+b.desc:'')).join('。')+'。':'');
   const trimmed = (paraText||' ').trim();
   const firstChar = trimmed.charAt(0);
   const rest = trimmed.slice(1);
-  return `<section class="slide">${deco}${numBadge}
+  return `<section class="slide">${deco}${numBadge}${signature}
   <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;padding:var(--sp);position:relative;z-index:1">
-    <div class="rv" style="font-size:var(--ss);letter-spacing:.2em;text-transform:uppercase;color:var(--ac);font-weight:700;margin-bottom:1.1rem">READING · ${n} / ${t}</div>
     <h2 class="rv" style="font-family:var(--fd);font-size:clamp(1.4rem,3.4vw,2.4rem);font-weight:900;line-height:1.15;max-width:min(82vw,760px);margin-bottom:1.3rem;text-align:center">${esc(s.title)}</h2>
     <div class="rv" style="width:clamp(36px,5vw,60px);height:2px;background:var(--ac);margin-bottom:1.5rem"></div>
     <p class="rv" style="font-size:clamp(.95rem,1.8vw,1.3rem);line-height:1.85;color:var(--tx);max-width:min(80vw,720px);text-align:justify">
@@ -2431,11 +2421,10 @@ function insightV3(ctx) { // v3: 全屏段落+首字下沉 (single-column readin
 
 // ── ACTION variants ────────────────────────────────────────────
 function actionV1(ctx) { // v1: 居中标题+3卡片 (existing .action-wrap)
-  const {s,n,deco,numBadge} = ctx;
+  const {s,deco,numBadge,signature} = ctx;
   const cards = s.bullets.slice(0,3).map((b,i)=>`<div class="action-card rv"><div class="action-card-num">0${i+1}</div><div class="action-card-title">${esc(b.strong)}</div><div class="action-card-desc">${esc(b.desc)}</div></div>`).join('');
-  return `<section class="slide">${deco}${numBadge}
+  return `<section class="slide">${deco}${numBadge}${signature}
   <div class="action-wrap">
-    <div class="action-eyebrow rv">NEXT · ${n}</div>
     <h2 class="action-title rv">${esc(s.title)}</h2>
     <div class="action-cards">${cards}</div>
     <div class="action-tagline rv">${esc(s.bullets[3]?.strong||s.insight.slice(0,40))}</div>
@@ -2443,10 +2432,9 @@ function actionV1(ctx) { // v1: 居中标题+3卡片 (existing .action-wrap)
 </section>`;
 }
 function actionV2(ctx) { // v2: Checklist 清单
-  const {s,n,deco,numBadge} = ctx;
-  return `<section class="slide">${deco}${numBadge}
+  const {s,deco,numBadge,signature} = ctx;
+  return `<section class="slide">${deco}${numBadge}${signature}
   <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;padding:var(--sp);position:relative;z-index:1">
-    <div class="rv" style="font-size:var(--ss);letter-spacing:.2em;text-transform:uppercase;color:var(--ac);font-weight:700;margin-bottom:.9rem">CHECKLIST · ${n}</div>
     <h2 class="rv" style="font-family:var(--fd);font-size:var(--h2);font-weight:900;line-height:1.08;text-align:center;margin-bottom:.55rem;max-width:min(85vw,760px)">${esc(s.title)}</h2>
     <p class="rv" style="font-size:var(--bs);color:var(--mu);line-height:1.7;text-align:center;margin-bottom:var(--cg);max-width:min(75vw,600px)">${esc(s.insight)}</p>
     <div style="display:flex;flex-direction:column;gap:clamp(.48rem,1.2vw,.85rem);width:100%;max-width:min(82vw,680px)">
@@ -2459,13 +2447,12 @@ function actionV2(ctx) { // v2: Checklist 清单
 </section>`;
 }
 function actionV3(ctx) { // v3: 大 CTA 按钮 (single-column, tight vertical rhythm)
-  const {s,n,deco,numBadge} = ctx;
+  const {s,deco,numBadge,signature} = ctx;
   const cta = s.bullets[0]?.strong || s.title;
   const subCta = s.bullets[0]?.desc || s.insight;
   const extras = s.bullets.slice(1, 4);
-  return `<section class="slide">${deco}${numBadge}
+  return `<section class="slide">${deco}${numBadge}${signature}
   <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;padding:var(--sp);text-align:center;position:relative;z-index:1;gap:clamp(.55rem,1.1vw,.9rem)">
-    <div class="rv" style="font-size:var(--ss);letter-spacing:.22em;text-transform:uppercase;color:var(--ac);font-weight:700">NEXT STEP · ${n}</div>
     <h2 class="rv" style="font-family:var(--fd);font-size:clamp(2rem,6vw,4.5rem);font-weight:900;line-height:1;letter-spacing:-.02em;max-width:min(90vw,940px)">${esc(s.title)}</h2>
     <p class="rv" style="font-size:var(--bs);color:var(--mu);max-width:min(70vw,580px);line-height:1.7">${esc(s.insight)}</p>
     <div class="rv" style="display:inline-flex;align-items:center;gap:clamp(.8rem,1.5vw,1.2rem);padding:clamp(.85rem,1.8vw,1.25rem) clamp(1.6rem,3.2vw,2.6rem);background:var(--ac);color:#000;font-family:var(--fd);font-weight:900;font-size:clamp(1rem,2.2vw,1.5rem);letter-spacing:.01em;border-radius:100px;box-shadow:0 10px 32px rgba(0,0,0,.22),0 0 0 6px rgba(255,255,255,.04);margin-top:.4rem">▸ ${esc(cta)}</div>
@@ -2476,7 +2463,7 @@ function actionV3(ctx) { // v3: 大 CTA 按钮 (single-column, tight vertical rh
 }
 
 // ── NOTEBOOK TABS canonical rendering (paper-card is the signature) ──
-function buildNotebookSlide(s, n, t, layout, deco, numBadge) {
+function buildNotebookSlide(s, n, t, layout, deco, numBadge, signature) {
   const wrap = (inner) => `<div style="display:flex;align-items:center;justify-content:center;height:100%;padding:var(--sp2)">
   <div class="paper-card">
     <div class="paper-holes"><div class="paper-hole"></div><div class="paper-hole"></div><div class="paper-hole"></div></div>
@@ -2491,14 +2478,14 @@ function buildNotebookSlide(s, n, t, layout, deco, numBadge) {
   </div>
 </div>`;
   if (layout==='hook') {
-    return `<section class="slide">${deco}${numBadge}${wrap(`
+    return `<section class="slide">${deco}${numBadge}${signature}${wrap(`
       <div class="rv" style="font-size:var(--ss);letter-spacing:.14em;text-transform:uppercase;color:var(--ac);font-weight:600;margin-bottom:.6rem">P${n}</div>
       <h2 class="rv" style="font-family:var(--fd);font-size:var(--h2);font-weight:700;margin-bottom:.7rem">${esc(s.title)}</h2>
       <p class="rv" style="font-size:var(--bs);color:var(--mu);line-height:1.7;margin-bottom:var(--cg)">${esc(s.insight)}</p>
       ${s.bullets.slice(0,4).map(b=>`<div class="rv" style="display:flex;gap:.6rem;padding:.4rem 0;border-bottom:1px solid rgba(0,0,0,.08);font-size:var(--bs)"><span style="color:var(--ac);font-weight:700;flex-shrink:0">→</span><span><strong>${esc(b.strong)}</strong>: ${esc(b.desc)}</span></div>`).join('')}`)}</section>`;
   }
   if (layout==='data') {
-    return `<section class="slide">${deco}${numBadge}${wrap(`
+    return `<section class="slide">${deco}${numBadge}${signature}${wrap(`
       <h2 class="rv" style="font-family:var(--fd);font-size:var(--h2);font-weight:700;margin-bottom:.5rem">${esc(s.title)}</h2>
       <p class="rv" style="font-size:var(--ss);color:var(--mu);margin-bottom:var(--cg)">${esc(s.insight)}</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">
@@ -2506,7 +2493,7 @@ function buildNotebookSlide(s, n, t, layout, deco, numBadge) {
       </div>`)}</section>`;
   }
   if (layout==='process') {
-    return `<section class="slide">${deco}${numBadge}${wrap(`
+    return `<section class="slide">${deco}${numBadge}${signature}${wrap(`
       <h2 class="rv" style="font-family:var(--fd);font-size:var(--h2);font-weight:700;margin-bottom:.5rem">${esc(s.title)}</h2>
       <p class="rv" style="font-size:var(--ss);color:var(--mu);margin-bottom:var(--cg)">${esc(s.insight)}</p>
       ${s.bullets.slice(0,5).map((b,i)=>`<div class="rv" style="display:flex;gap:.7rem;align-items:flex-start;padding:.4rem 0;border-bottom:1px solid rgba(0,0,0,.07)"><div style="width:1.4rem;height:1.4rem;border-radius:50%;background:var(--ac);color:#000;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:900;flex-shrink:0">${i+1}</div><div style="font-size:var(--ss)"><strong>${esc(b.strong)}</strong> — ${esc(b.desc)}</div></div>`).join('')}`)}</section>`;
@@ -2514,7 +2501,7 @@ function buildNotebookSlide(s, n, t, layout, deco, numBadge) {
   if (layout==='compare') {
     const half = Math.ceil(s.bullets.length/2);
     const lb = s.bullets.slice(0,half), rb = s.bullets.slice(half);
-    return `<section class="slide">${deco}${numBadge}${wrap(`
+    return `<section class="slide">${deco}${numBadge}${signature}${wrap(`
       <h2 class="rv" style="font-family:var(--fd);font-size:var(--h2);font-weight:700;margin-bottom:.5rem">${esc(s.title)}</h2>
       <p class="rv" style="font-size:var(--ss);color:var(--mu);margin-bottom:var(--cg)">${esc(s.insight)}</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;flex:1">
@@ -2523,12 +2510,12 @@ function buildNotebookSlide(s, n, t, layout, deco, numBadge) {
       </div>`)}</section>`;
   }
   if (layout==='action') {
-    return `<section class="slide">${deco}${numBadge}${wrap(`
+    return `<section class="slide">${deco}${numBadge}${signature}${wrap(`
       <h2 class="rv" style="font-family:var(--fd);font-size:var(--h2);font-weight:700;margin-bottom:var(--cg)">${esc(s.title)}</h2>
       ${s.bullets.slice(0,3).map((b,i)=>`<div class="rv" style="display:flex;gap:.8rem;align-items:flex-start;background:rgba(0,0,0,.04);border-radius:8px;padding:.7rem;margin-bottom:.5rem;border-left:3px solid var(--ac)"><div style="font-family:var(--fd);font-size:1.2rem;font-weight:900;color:var(--ac);flex-shrink:0">0${i+1}</div><div><div style="font-weight:700;font-size:var(--bs)">${esc(b.strong)}</div><div style="font-size:var(--ss);color:var(--mu)">${esc(b.desc)}</div></div></div>`).join('')}`)}</section>`;
   }
   // default: insight
-  return `<section class="slide">${deco}${numBadge}${wrap(`
+  return `<section class="slide">${deco}${numBadge}${signature}${wrap(`
     <div class="rv" style="font-size:var(--ss);letter-spacing:.12em;text-transform:uppercase;color:var(--ac);font-weight:600;margin-bottom:.6rem">P${n}</div>
     <h2 class="rv" style="font-family:var(--fd);font-size:var(--h2);font-weight:700;line-height:1.1;margin-bottom:.6rem">${esc(s.title)}</h2>
     <p class="rv" style="font-size:var(--ss);color:var(--mu);line-height:1.7;margin-bottom:var(--cg)">${esc(s.insight)}</p>
@@ -2544,7 +2531,7 @@ function buildTitleSlide(topic, audience, totalSlides, styleName, subtitle) {
   else if(styleName==='Swiss Modern')deco='<div class="swiss-rule"></div><div class="swiss-grid"></div>';
   else if(styleName==='Electric Studio')deco='<div class="electric-split"></div><div class="electric-edge"></div>';
 
-  const brand = `<div style="position:absolute;right:clamp(1rem,2vw,2rem);bottom:clamp(1rem,2vw,1.8rem);font-size:.7rem;color:var(--mu);opacity:.5;letter-spacing:.08em;font-weight:500;z-index:2">Made with PPT-FLUX Studio</div>`;
+  const brand = `<div class="slide-signature">PPTFlux</div>`;
   const sub = subtitle
     ? `<p class="rv" style="font-size:clamp(1rem,1.8vw,1.4rem);color:var(--mu);max-width:min(80vw,760px);line-height:1.5;margin-top:.8rem">${escHtml(subtitle)}</p>`
     : '';
@@ -2625,7 +2612,7 @@ async function callApiOnce(systemPrompt, userMsg, maxTokens, imageDataUrls) {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer ' + API_KEY,
       'HTTP-Referer': 'http://localhost:8080',
-      'X-Title': 'PPT-FLUX Studio',
+      'X-Title': 'PPTFlux',
     },
     body: JSON.stringify({
       model: MODEL,
@@ -2673,6 +2660,56 @@ function isValidSlideHtml(html, expectedAbsNum) {
     if (idMatch && parseInt(idMatch[1], 10) !== expectedAbsNum) return false;
   }
   return true;
+}
+
+// Post-processes an Agent-4-returned <section> HTML fragment to enforce canonical decoration:
+//   • strip any Agent-invented page-number indicators (.slide-num / .slide-bg-num /
+//     absolutely-positioned leaf with text matching N/N)
+//   • strip any existing .slide-signature to avoid duplicates
+//   • append canonical <div class="slide-num rv">NN/TT</div>
+//   • append canonical <div class="slide-signature">PPTFlux</div>
+// Idempotent on buildLocalSlide output (already-canonical elements get removed then re-appended identically).
+// Risks handled: returns input unchanged on parse failure / no <section> / multi <section> (first-only, warns).
+function sanitizeAgentSlide(html, n, t) {
+  if (!html || typeof html !== 'string') return html;
+  let section;
+  try {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const sections = doc.querySelectorAll('section');
+    if (sections.length === 0) {
+      console.warn('[sanitizeAgentSlide] no <section> — passing through');
+      return html;
+    }
+    if (sections.length > 1) {
+      console.warn(`[sanitizeAgentSlide] found ${sections.length} <section>, processing only first`);
+    }
+    section = sections[0];
+  } catch (e) {
+    console.warn('[sanitizeAgentSlide] parse failed, passing through:', e.message);
+    return html;
+  }
+
+  // Strip any existing page-number indicators.
+  section.querySelectorAll('.slide-num, .slide-bg-num').forEach(el => el.remove());
+  const PAGE_NUM_RE = /^\s*\d{1,3}\s*\/\s*\d{1,3}\s*$/;
+  section.querySelectorAll('[style*="position:absolute"],[style*="position: absolute"]').forEach(el => {
+    if (el.children.length === 0 && PAGE_NUM_RE.test(el.textContent || '')) el.remove();
+  });
+  // Strip any existing signature to avoid duplicates (Agent 4 may have mimicked one).
+  section.querySelectorAll('.slide-signature').forEach(el => el.remove());
+
+  // Append canonical decoration (absolute-positioned by CSS, so DOM order doesn't affect visual position).
+  const numBadge = document.createElement('div');
+  numBadge.className = 'slide-num rv';
+  numBadge.textContent = `${n}/${t}`;
+  section.appendChild(numBadge);
+
+  const sig = document.createElement('div');
+  sig.className = 'slide-signature';
+  sig.textContent = 'PPTFlux';
+  section.appendChild(sig);
+
+  return section.outerHTML;
 }
 
 // Scans API-returned sections for their self-claimed page number (slide-num or id="slide-N").
@@ -2739,7 +2776,10 @@ async function reRenderOnly() {
     } else {
       const parts = parsedSlides.map((s, i) => {
         const v = pickVariant(s.layout, i, style);
+        const n = String(i + 1).padStart(2, '0');
+        const t = String(totalSlides).padStart(2, '0');
         let html = buildLocalSlide(s, i+1, totalSlides, style, v);
+        html = sanitizeAgentSlide(html, n, t); // unify decoration path with main pipeline (idempotent on local output)
         if (s.notes) {
           const noteHtml = `<div class="slide-notes"><div class="notes-label">演讲者备注 · N 键切换</div>${esc(s.notes)}</div>`;
           html = html.replace(/<\/section>\s*$/, noteHtml + '</section>');
@@ -3070,6 +3110,15 @@ ${absNum===1?`字体（仅第一页加）：<link href="${cfg.fontUrl}" rel="sty
       // Trim over-generated tail (unusual, but guard for API returning extra)
       addLog(`⚠ API 多返回 ${allHtmlParts.length - totalSlides} 页，已截断`, '#facc15');
       allHtmlParts.length = totalSlides;
+    }
+
+    // ── Post-process: enforce canonical page-num + signature decoration on every page ──
+    // isValidSlideHtml ran already; sanitize runs after so content-validation isn't disturbed by DOM roundtrip.
+    // Catches every provenance path: Agent 4 batch / retrySinglePage / simplified fallback / buildLocalSlide / gap-fill.
+    for (let i = 0; i < allHtmlParts.length; i++) {
+      const n = String(i + 1).padStart(2, '0');
+      const t = String(allHtmlParts.length).padStart(2, '0');
+      allHtmlParts[i] = sanitizeAgentSlide(allHtmlParts[i], n, t);
     }
 
     // ── Inject speaker notes into each slide ──
