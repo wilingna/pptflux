@@ -1271,7 +1271,7 @@ async function streamTo(elId, system, userMsg) {
       el.innerHTML = `<span style="color:#f87171;font-size:12px">⚠ API 错误 ${resp.status}: ${errMsg}</span>`;
       const abody = el.closest('.abody');
       if (abody) abody.classList.add('open');
-      return text;
+      throw new Error(`API ${resp.status}: ${errMsg}`);
     }
     const reader  = resp.body.getReader();
     const decoder = new TextDecoder();
@@ -2946,6 +2946,15 @@ async function reRenderOnly() {
   const audience = document.querySelector('#aud-chips .chip.on')?.textContent || '高管';
   const style = document.querySelector('.style-card.on')?.dataset.s || 'Bold Signal';
   const r3source = document.getElementById('at3').innerText || r3;
+  // Fix C · at3 含 401/连接错误残留时直接 bail，避免把错误文本当 markdown 本地渲染出 1 页骨架 deck
+  if (/⚠ API 错误|⚠ 连接错误/.test(r3source)) {
+    const el4 = document.getElementById('at4');
+    el4.innerHTML = '<span style="color:#f87171;font-size:12px">⚠ Agent 3 输出包含 API 错误，请先点屏幕底部「重新生成」跑一次完整 pipeline</span>';
+    document.getElementById('ab4').classList.add('open');
+    if (btn) { btn.textContent = '↻ 重新渲染'; btn.disabled = false; }
+    running = false;
+    return;
+  }
   setAgentStatus(4, 'run');
   const el4 = document.getElementById('at4');
   el4.innerHTML = '<em style="color:var(--gold2);font-size:11px">↻ 重新渲染中…</em><span class="stream-cursor"></span>';
