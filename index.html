@@ -2906,6 +2906,40 @@ function extractClaimedAbsNum(sectionHtml) {
   return null;
 }
 
+// === FixE: Agent 4 单页 retry wrapper ===
+// 触发条件: fetch 抛错 / 非 2xx / 空 body
+// 不触发: 401(让 Fix A 的 throw 冒泡到顶层显示给用户)
+// 失败 3 次后返回 null,让外层走 buildLocalSlide 兜底
+async function retryablePageGen(genFn, pageIdx, maxRetries = 3) {
+  let lastErr = null;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const result = await genFn();
+      // 空响应也算失败(Anthropic 服务端偶发故障)
+      if (!result || (typeof result === 'string' && !result.trim())) {
+        throw new Error('Empty response');
+      }
+      if (attempt > 1) {
+        console.log(`[FixE] Page ${pageIdx + 1} succeeded on retry ${attempt - 1}`);
+      }
+      return result;
+    } catch (e) {
+      lastErr = e;
+      const msg = (e && e.message) || String(e);
+      // 401 不重试,直接冒泡
+      if (msg.includes('401') || msg.includes('User not found') || msg.includes('API key')) {
+        throw e;
+      }
+      console.warn(`[FixE] Page ${pageIdx + 1} attempt ${attempt}/${maxRetries} failed:`, msg);
+      if (attempt < maxRetries) {
+        await new Promise(r => setTimeout(r, 1500));
+      }
+    }
+  }
+  console.error(`[FixE] Page ${pageIdx + 1} all ${maxRetries} retries failed, last error:`, lastErr);
+  return null; // 让外层走兜底
+}
+
 async function retrySinglePage(slide, absNum, totalSlides, style, cfg, systemPrompt, variant) {
   const n = String(absNum).padStart(2, '0');
   const t = String(totalSlides).padStart(2, '0');
@@ -2921,9 +2955,9 @@ ${bullets}
   try {
     const timeout = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('单页补救超时(20s)')), 20000));
-    const call = callApiOnce(systemPrompt,
+    const call = retryablePageGen(() => callApiOnce(systemPrompt,
       `生成 1 页幻灯片（仅这一页，直接输出 <section>...</section>，不要 SLIDE_BREAK）：\n\n${content}`,
-      4000);
+      4000), absNum - 1);
     const raw = await Promise.race([call, timeout]);
     const clean = (raw || '').replace(/```html\n?/g, '').replace(/```\n?/g, '').trim();
     const match = clean.match(/<section[\s\S]*?<\/section>/i);
